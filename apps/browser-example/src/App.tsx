@@ -1,7 +1,6 @@
 import { ReactNode, useEffect, useState } from "react"
 import { BootstrapIcon } from "./components/BootstrapIcon"
 import { useKeyManager } from "./hooks/key"
-import { OfficialSDKWebSocketExample } from "./pages/OfficialSDKWebSocketExample"
 import { WebRTCExample } from "./pages/WebRTCExample"
 import { PageProps } from "./pages/props"
 
@@ -21,12 +20,6 @@ export function App() {
     WebRTC: {
       label: "WebRTC Example",
       page: (props: PageProps) => <WebRTCExample {...props} />,
-    },
-    "official-ws": {
-      label: "Official SDK WebSocket Example",
-      page: (props: PageProps) => {
-        return <OfficialSDKWebSocketExample {...props} />
-      },
     },
   })
   const [activeRoute, setActiveRoute] = useState<keyof typeof routes>("WebRTC")
