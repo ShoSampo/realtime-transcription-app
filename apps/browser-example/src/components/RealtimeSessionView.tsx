@@ -5,7 +5,10 @@ import {
   RealtimeConversationItem,
   RealtimeSessionCreateRequest,
 } from "@tsorta/browser/openai"
-import { ConversationView } from "./ConversationView"
+
+// 許可されたモデルの型を定義
+export type AllowedModel = 
+  | "gpt-4o-realtime-preview-2024-12-17" 
 
 type PartialSessionRequestWithModel = Partial<RealtimeSessionCreateRequest> &
   Pick<Required<RealtimeSessionCreateRequest>, "model">
@@ -19,6 +22,17 @@ interface RealtimeSessionViewProps {
   sessionStatus: "unavailable" | "stopped" | "recording"
   events: { type: string }[]
   conversation?: RealtimeConversationItem[]
+  // 文字起こし設定を親コンポーネントから受け取る
+  transcriptionSettings: {
+    model: AllowedModel;
+    modalities: string[];
+    instructions: string;
+    input_audio_transcription: {
+      model: string;
+      language: string;
+      prompt: string;
+    };
+  }
 }
 
 export function RealtimeSessionView({
@@ -27,10 +41,8 @@ export function RealtimeSessionView({
   sessionStatus,
   events,
   conversation,
+  transcriptionSettings,
 }: RealtimeSessionViewProps): ReactNode {
-  // OpenAI Realtime API モデル
-  const model = "gpt-4o-realtime-preview-2024-12-17"
-
   const [activeTab, setActiveTab] = useState<"events" | "transcription">(
     "transcription"
   )
@@ -49,19 +61,12 @@ export function RealtimeSessionView({
     if (sessionStatus === "recording") {
       await stopSession()
     } else if (sessionStatus === "stopped") {
-      let sessionRequest: PartialSessionRequestWithModel = {
-        model,
-        // 常に文字起こしを有効にする
-        input_audio_transcription: {
-          model: "whisper-1",
-        },
-        // 文字起こしのみを指定
-        modalities: ["audio"],
-        // 文字起こしのみを行う指示
-        instructions: "You are a transcription service. Only transcribe what you hear without adding any response or commentary. Do not engage in conversation."
-      }
-      
-      await startSession({ sessionRequest })
+      // 親コンポーネントから受け取った設定をそのまま使用
+      await startSession({ 
+        sessionRequest: { 
+          model: transcriptionSettings.model
+        } 
+      })
     }
   }
 

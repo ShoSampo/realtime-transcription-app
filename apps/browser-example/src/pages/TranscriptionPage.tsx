@@ -10,7 +10,26 @@ import {
   RealtimeSessionCreateResponse,
 } from "@tsorta/browser/openai"
 
-export function WebRTCExample({
+// AllowedModel型をインポート
+import { AllowedModel } from "../components/RealtimeSessionView"
+
+// 文字起こし専用の設定を一元管理
+const TRANSCRIPTION_SETTINGS = {
+  // OpenAI Realtime API モデル
+  model: "gpt-4o-realtime-preview-2024-12-17" as AllowedModel,
+  // 応答モダリティをテキストのみに設定 (APIエラー回避のため)
+  modalities: ["text"],
+  // 文字起こし専用の指示
+  instructions: "You are a transcription service. Only transcribe what you hear without adding any response or commentary. Do not engage in conversation.",
+  // 文字起こしを日本語に固定
+  input_audio_transcription: {
+    model: "whisper-1",
+    language: "ja",
+    prompt: "これは日本語での商談の会話です"
+  }
+}
+
+export function TranscriptionPage({
   apiKey,
   sessionStatus,
   onSessionStatusChanged,
@@ -34,19 +53,14 @@ export function WebRTCExample({
         throw new Error("Audio element not found")
       }
 
-      // 文字起こし専用の設定を強制的に適用
+      // RealtimeSessionViewからの設定を受け取るが、文字起こし専用設定を適用
       const modifiedSessionRequest = {
+        ...TRANSCRIPTION_SETTINGS,
         ...sessionRequest,
-        // 応答モダリティをテキストのみに設定 (APIエラー回避のため)
-        modalities: ["text"],
-        // 文字起こし専用の指示
-        instructions: "You are a transcription service. Only transcribe what you hear without adding any response or commentary. Do not engage in conversation.",
-        // 文字起こしを日本語に固定 (型定義に応じてカスタム設定)
-        input_audio_transcription: {
-          model: "whisper-1",
-          language: "ja", // 型エラーが出る場合はAPIがこのプロパティを受け付ける
-          prompt: "これは日本語での商談の会話です"
-        }
+        // 以下の設定は常に固定値を使用（オーバーライド）
+        modalities: TRANSCRIPTION_SETTINGS.modalities,
+        instructions: TRANSCRIPTION_SETTINGS.instructions,
+        input_audio_transcription: TRANSCRIPTION_SETTINGS.input_audio_transcription
       }
 
       console.debug("Starting session with request", {
@@ -145,6 +159,7 @@ export function WebRTCExample({
         sessionStatus={sessionStatus}
         events={events}
         conversation={conversation}
+        transcriptionSettings={TRANSCRIPTION_SETTINGS}
       />
     </div>
   )

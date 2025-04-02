@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { WebRTCExample } from "./pages/WebRTCExample"
+import { TranscriptionPage } from "./pages/TranscriptionPage"
 
 export function App() {
   const [apiKey, setApiKey] = useState<string | undefined>(undefined)
@@ -18,7 +18,7 @@ export function App() {
 
   return (
     <main className="container">
-      <WebRTCExample
+      <TranscriptionPage
         apiKey={apiKey}
         sessionStatus={sessionStatus}
         onSessionStatusChanged={(status) => {
