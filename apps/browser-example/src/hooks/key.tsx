@@ -8,15 +8,23 @@ export function useKeyManager(): {
   EnterKeyButton: ReactNode
 } {
   const [key, setKey] = useState<string | undefined>(undefined)
-  const [showModal, setShowModal] = useState(key === undefined)
+  const [showModal, setShowModal] = useState(false)
 
   useEffect(() => {
-    if (key !== undefined) return
+    const envKey = import.meta.env.VITE_OPENAI_API_KEY
+    if (envKey) {
+      setKey(envKey)
+      return
+    }
+
     const storedKey = loadKeyFromBrowser()
     if (storedKey) {
       setKey(storedKey)
-      setShowModal(false)
+      return
     }
+
+    // 環境変数にもブラウザのストレージにもキーがない場合は入力モーダルを表示
+    setShowModal(true)
   }, [])
 
   const EnterKeyButton = (
@@ -27,7 +35,7 @@ export function useKeyManager(): {
     >
       <BootstrapIcon name="gear" />
       <span>{key ? "✅" : "❌"}</span>
-      Enter API Key
+      {import.meta.env.VITE_OPENAI_API_KEY ? "環境変数のAPIキーを使用中" : "APIキーを入力"}
     </button>
   )
 
@@ -38,7 +46,19 @@ export function useKeyManager(): {
         saveKeyToBrowser(key)
         setShowModal(false)
       }}
-      onCanceled={() => setShowModal(false)}
+      onCanceled={() => {
+        if (key) {
+          // 既にキーがある場合はモーダルを閉じるだけ
+          setShowModal(false)
+        } else {
+          // キーがない場合は環境変数をチェック
+          const envKey = import.meta.env.VITE_OPENAI_API_KEY
+          if (envKey) {
+            setKey(envKey)
+            setShowModal(false)
+          }
+        }
+      }}
     />
   ) : (
     <></>
@@ -62,5 +82,5 @@ function loadKeyFromBrowser(): string | undefined {
 
   const key = cookie?.split("=")[1]
   console.debug(`Loaded key from browser with length ${key?.length ?? 0}`)
-  return key
+  return key ? decodeURIComponent(key) : undefined
 }
