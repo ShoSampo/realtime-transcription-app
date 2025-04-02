@@ -41,11 +41,6 @@ export function WebRTCExample({
       const client = new RealtimeClient(
         navigator,
         async () => {
-          // NOTE: For the sake of the example, we're using a "real" OpenAI API
-          //   key in *the browser*. **DO NOT DO THIS**. You should make this request
-          //   for the ephemeral key on a backend server where you can protect
-          //   the key.
-
           const r = await fetch("https://api.openai.com/v1/realtime/sessions", {
             method: "POST",
             headers: {
@@ -73,7 +68,6 @@ export function WebRTCExample({
       try {
         await client.start()
       } catch (e) {
-        // TODO: put an alert on the top to show error
         console.error("Error starting session", e)
         return
       }
@@ -92,16 +86,8 @@ export function WebRTCExample({
   )
 
   return (
-    <div className="container">
-      <h1>WebRTC Example</h1>
-      <p>
-        This example demonstrates how to use the OpenAI Realtime API directly.
-        It is using the TypeScript client from the article{" "}
-        <a href="https://scott.willeke.com/ai-typescript-client-for-openai-realtime-api">
-          AI Learns to Listen: TypeScript Client for OpenAI's Realtime API
-        </a>{" "}
-        by Scott Willeke.
-      </p>
+    <div>
+      <h1>リアルタイム文字起こし</h1>
       <audio ref={audioElementRef}></audio>
 
       <RealtimeSessionView
