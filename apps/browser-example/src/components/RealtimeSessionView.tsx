@@ -1,4 +1,4 @@
-import { ReactNode, useState } from "react"
+import { ReactNode, useEffect, useRef, useState } from "react"
 import { BootstrapIcon } from "./BootstrapIcon"
 import { EventList } from "./EventList"
 import {
@@ -31,9 +31,19 @@ export function RealtimeSessionView({
   // OpenAI Realtime API モデル
   const model = "gpt-4o-realtime-preview-2024-12-17"
 
-  const [activeTab, setActiveTab] = useState<"events" | "conversation">(
-    "conversation"
+  const [activeTab, setActiveTab] = useState<"events" | "transcription">(
+    "transcription"
   )
+  
+  // 文字起こしエリアへの参照を追加
+  const transcriptionAreaRef = useRef<HTMLDivElement>(null);
+
+  // 会話データが更新されたら自動スクロール
+  useEffect(() => {
+    if (transcriptionAreaRef.current && activeTab === "transcription") {
+      transcriptionAreaRef.current.scrollTop = transcriptionAreaRef.current.scrollHeight;
+    }
+  }, [conversation, activeTab]);
 
   const handleRecordingToggle = async () => {
     if (sessionStatus === "recording") {
@@ -45,10 +55,58 @@ export function RealtimeSessionView({
         input_audio_transcription: {
           model: "whisper-1",
         },
+        // 文字起こしのみを指定
+        modalities: ["audio"],
+        // 文字起こしのみを行う指示
+        instructions: "You are a transcription service. Only transcribe what you hear without adding any response or commentary. Do not engage in conversation."
       }
       
       await startSession({ sessionRequest })
     }
+  }
+
+  // ユーザーの発言のみを抽出する関数
+  const userMessages = () => {
+    if (!conversation) return []
+    
+    return conversation.filter(item => item.role === "user")
+  }
+
+  const renderTranscriptions = () => {
+    const messages = userMessages()
+    
+    if (messages.length === 0) {
+      return (
+        <div className="alert alert-info m-2" role="alert">
+          文字起こしデータはまだありません。録音を開始して話してください。
+        </div>
+      )
+    }
+
+    // すべての文字起こしテキストを連結して表示
+    const combinedTranscript = messages.map((item) => {
+      const text = item.content?.find(c => c.type === "input_audio")?.transcript || "";
+      return text.trim();
+    }).join(" ");
+
+    return (
+      <div 
+        ref={transcriptionAreaRef}
+        className="transcription-area p-3 mt-3" 
+        style={{
+          height: "400px",
+          overflowY: "auto",
+          backgroundColor: "#f8f9fa",
+          borderRadius: "8px",
+          boxShadow: "inset 0 1px 3px rgba(0,0,0,0.1)",
+          lineHeight: "1.7",
+          fontSize: "1.1rem",
+          whiteSpace: "pre-wrap"
+        }}
+      >
+        {combinedTranscript}
+      </div>
+    )
   }
 
   return (
@@ -83,15 +141,15 @@ export function RealtimeSessionView({
       <ul className="nav nav-tabs mt-3" role="tablist">
         <li className="nav-item" role="presentation">
           <button
-            className={`nav-link ${activeTab === "conversation" ? "active" : ""}`}
-            id="conversation-tab"
+            className={`nav-link ${activeTab === "transcription" ? "active" : ""}`}
+            id="transcription-tab"
             type="button"
             role="tab"
-            aria-controls="conversation"
-            aria-selected={activeTab === "conversation"}
-            onClick={() => setActiveTab("conversation")}
+            aria-controls="transcription"
+            aria-selected={activeTab === "transcription"}
+            onClick={() => setActiveTab("transcription")}
           >
-            会話
+            文字起こし
           </button>
         </li>
         <li className="nav-item" role="presentation">
@@ -111,21 +169,13 @@ export function RealtimeSessionView({
       <div className="tab-content">
         <div
           className={`tab-pane fade ${
-            activeTab === "conversation" ? "show active" : ""
+            activeTab === "transcription" ? "show active" : ""
           }`}
-          id="conversation"
+          id="transcription"
           role="tabpanel"
-          aria-labelledby="conversation-tab"
+          aria-labelledby="transcription-tab"
         >
-          {conversation && conversation.length > 0 ? (
-            <ConversationView conversation={conversation} />
-          ) : (
-            <div className="alert alert-info m-2" role="alert">
-              {conversation !== undefined
-                ? "会話データはまだありません。録音を開始して会話を始めてください。"
-                : "会話データは利用できません"}
-            </div>
-          )}
+          {renderTranscriptions()}
         </div>
         <div
           className={`tab-pane fade ${
