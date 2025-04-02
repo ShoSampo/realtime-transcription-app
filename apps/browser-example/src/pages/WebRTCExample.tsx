@@ -40,7 +40,13 @@ export function WebRTCExample({
         // 応答モダリティをテキストのみに設定 (APIエラー回避のため)
         modalities: ["text"],
         // 文字起こし専用の指示
-        instructions: "You are a transcription service. Only transcribe what you hear without adding any response or commentary. Do not engage in conversation."
+        instructions: "You are a transcription service. Only transcribe what you hear without adding any response or commentary. Do not engage in conversation.",
+        // 文字起こしを日本語に固定 (型定義に応じてカスタム設定)
+        input_audio_transcription: {
+          model: "whisper-1",
+          language: "ja", // 型エラーが出る場合はAPIがこのプロパティを受け付ける
+          prompt: "これは日本語での商談の会話です"
+        }
       }
 
       console.debug("Starting session with request", {
@@ -68,9 +74,16 @@ export function WebRTCExample({
           
           const data = (await r.json()) as RealtimeSessionCreateResponse
 
+          // ログ出力の安全処理
+          const transcriptionSettings = data.input_audio_transcription || {};
           console.log("Session created with settings:", {
             modalities: data.modalities,
             instructions: data.instructions?.substring(0, 50) + "..." || "Not available",
+            transcription: {
+              model: transcriptionSettings.model || "default",
+              // anyで回避（型定義が不明なため）
+              language: (transcriptionSettings as any).language || "auto detect"
+            }
           })
 
           // client_secretが存在するか確認
@@ -123,7 +136,7 @@ export function WebRTCExample({
 
   return (
     <div>
-      <h1>商談同席くん</h1>
+      <h1>リアルタイム文字起こし</h1>
       <audio ref={audioElementRef}></audio>
 
       <RealtimeSessionView
